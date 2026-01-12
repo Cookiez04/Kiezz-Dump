@@ -12,6 +12,8 @@ const editorContent = document.getElementById("editorContent");
 const closeEditorBtn = document.getElementById("closeEditorBtn");
 const deleteEntryBtn = document.getElementById("deleteEntryBtn");
 const footerEasterEgg = document.getElementById("footerEasterEgg");
+const brandEgg = document.getElementById("brandEgg");
+const brandSubtitle = document.getElementById("brandSubtitle");
 
 let db = null;
 let entries = [];
@@ -188,6 +190,20 @@ function setupFooterEasterEgg() {
   });
 }
 
+function setupBrandEasterEgg() {
+  if (!brandEgg || !brandSubtitle) return;
+  let mode = 0;
+  const lines = [
+    "searchable brain exhaust",
+    "dump now. regret later.",
+    "zero sync. zero mercy.",
+  ];
+  brandEgg.addEventListener("click", () => {
+    mode = (mode + 1) % lines.length;
+    brandSubtitle.textContent = lines[mode];
+  });
+}
+
 async function boot() {
   setStatus(statusEl, "Loading…");
   try {
@@ -219,5 +235,5 @@ editorOverlay.addEventListener("click", (e) => {
 
 setupShortcuts();
 setupFooterEasterEgg();
+setupBrandEasterEgg();
 boot();
-

@@ -9,6 +9,7 @@
   --accent: #7aa2f7;
   --danger: #ff5a6a;
   --shadow: rgba(0, 0, 0, 0.5);
+  --ring: rgba(122, 162, 247, 0.12);
 }
 
 * {
@@ -63,6 +64,17 @@ body {
   letter-spacing: 0.4px;
   font-size: 18px;
   line-height: 1.2;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  padding: 0;
+  cursor: pointer;
+}
+
+.brand-title:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+  border-radius: 10px;
 }
 
 .brand-subtitle {
@@ -122,6 +134,12 @@ body {
   border-radius: 12px;
   cursor: pointer;
   user-select: none;
+}
+
+.result:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+  border-color: rgba(122, 162, 247, 0.45);
 }
 
 .result + .result {
@@ -199,6 +217,7 @@ body {
   place-items: center;
   background: rgba(0, 0, 0, 0.55);
   padding: 14px;
+  padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
 }
 
 .hidden {
@@ -225,6 +244,9 @@ body {
   gap: 12px;
   border-bottom: 1px solid var(--border);
   background: rgba(12, 14, 19, 0.55);
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 .editor-meta {
@@ -233,6 +255,7 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .editor-actions {
@@ -249,10 +272,17 @@ body {
   border-radius: 10px;
   cursor: pointer;
   font-size: 13px;
+  min-height: 40px;
 }
 
 .btn:hover {
   border-color: rgba(255, 255, 255, 0.14);
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+  border-color: rgba(122, 162, 247, 0.45);
 }
 
 .btn-danger {
@@ -273,4 +303,51 @@ body {
   font-size: 14px;
   line-height: 1.45;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+@media (max-width: 560px) {
+  .topbar {
+    padding: 14px 12px 12px;
+  }
+
+  .main {
+    padding: 14px 12px 16px;
+  }
+
+  .result {
+    padding: 14px 12px;
+  }
+
+  .editor {
+    height: min(86vh, 860px);
+    border-radius: 12px;
+  }
+
+  .editor-header {
+    flex-wrap: wrap;
+    justify-content: center;
+    text-align: center;
+    gap: 10px;
+  }
+
+  .editor-meta {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    flex: 1 1 100%;
+  }
+
+  .editor-actions {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .btn {
+    flex: 1 1 0;
+    max-width: 220px;
+  }
+
+  .dump-input {
+    padding: 14px 12px;
+  }
 }
