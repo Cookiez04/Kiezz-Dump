@@ -14,15 +14,18 @@
             <button id="brandEgg" class="brand-title" type="button">KiezzDump</button>
             <div id="brandSubtitle" class="brand-subtitle">searchable brain exhaust</div>
           </div>
-          <input
-            id="dumpInput"
-            class="dump-input"
-            type="text"
-            autocomplete="off"
-            spellcheck="true"
-            placeholder="dump something… (#tags inline)"
-            aria-label="Dump input and search"
-          />
+          <div class="dump-row">
+            <textarea
+              id="dumpInput"
+              class="dump-input"
+              autocomplete="off"
+              spellcheck="true"
+              placeholder="dump something… (#tags inline)"
+              aria-label="Dump input and search"
+              rows="2"
+            ></textarea>
+            <button id="dumpBtn" class="btn dump-btn" type="button" disabled>Dump</button>
+          </div>
         </div>
       </header>
 
@@ -46,6 +49,7 @@
       <div class="editor" role="dialog" aria-modal="true" aria-label="Entry editor">
         <div class="editor-header">
           <div id="editorMeta" class="editor-meta"></div>
+          <div id="saveIndicator" class="save-indicator" aria-live="polite"></div>
           <div class="editor-actions">
             <button id="deleteEntryBtn" class="btn btn-danger" type="button">Delete</button>
             <button id="closeEditorBtn" class="btn" type="button">Close</button>

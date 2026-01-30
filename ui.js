@@ -5,13 +5,13 @@ export function setStatus(el, message, type = "info") {
   el.classList.toggle("error", type === "error");
 }
 
-export function renderResults(container, entries, onOpenEntry) {
+export function renderResults(container, entries, onOpenEntry, emptyMessage) {
   container.innerHTML = "";
 
   if (!entries.length) {
     const empty = document.createElement("div");
     empty.className = "empty";
-    empty.textContent = "Nothing here yet. Dump something.";
+    empty.textContent = emptyMessage ?? "Nothing here yet. Dump something.";
     container.appendChild(empty);
     return;
   }
@@ -63,4 +63,3 @@ export function renderResults(container, entries, onOpenEntry) {
     container.appendChild(row);
   }
 }
-
