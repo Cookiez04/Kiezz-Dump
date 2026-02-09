@@ -192,6 +192,40 @@ body {
   border-radius: 999px;
 }
 
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px auto 0;
+  padding: 8px 10px;
+  max-width: 820px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  background: rgba(21, 24, 36, 0.35);
+}
+
+.suggestions-editor {
+  margin: 10px 12px 0;
+  padding: 8px 10px;
+  max-width: none;
+  border-style: solid;
+  background: rgba(12, 14, 19, 0.4);
+}
+
+.suggestion-pill {
+  border: 1px solid rgba(122, 162, 247, 0.35);
+  background: rgba(122, 162, 247, 0.12);
+  color: #d6e4ff;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.suggestion-pill:hover {
+  border-color: rgba(122, 162, 247, 0.6);
+}
+
 .result-date {
   color: var(--muted);
   font-size: 12px;
@@ -224,6 +258,18 @@ body {
   color: var(--muted);
   font-size: 12px;
   cursor: pointer;
+}
+
+.footer-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.footer-btn {
+  min-height: 36px;
+  padding: 6px 12px;
 }
 
 .overlay {

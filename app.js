@@ -4,18 +4,23 @@ import { computeTitle, debounce, extractTags, formatRelativeTime } from "./utils
 
 const dumpInput = document.getElementById("dumpInput");
 const dumpBtn = document.getElementById("dumpBtn");
+const dumpSuggestions = document.getElementById("dumpSuggestions");
 const resultsEl = document.getElementById("results");
 const statusEl = document.getElementById("status");
 
 const editorOverlay = document.getElementById("editorOverlay");
 const editorMeta = document.getElementById("editorMeta");
 const saveIndicator = document.getElementById("saveIndicator");
+const editorSuggestions = document.getElementById("editorSuggestions");
 const editorContent = document.getElementById("editorContent");
 const closeEditorBtn = document.getElementById("closeEditorBtn");
 const deleteEntryBtn = document.getElementById("deleteEntryBtn");
 const footerEasterEgg = document.getElementById("footerEasterEgg");
 const brandEgg = document.getElementById("brandEgg");
 const brandSubtitle = document.getElementById("brandSubtitle");
+const exportBtn = document.getElementById("exportBtn");
+const importBtn = document.getElementById("importBtn");
+const importFile = document.getElementById("importFile");
 
 let db = null;
 let entries = [];
@@ -58,6 +63,7 @@ function refreshList() {
     : "Nothing here yet. Dump something.";
   renderResults(resultsEl, filtered, (id) => openEditor(id), emptyMessage);
   setStatus(statusEl, `${filtered.length} result${filtered.length === 1 ? "" : "s"}`);
+  updateAllSuggestions();
 }
 
 function showOverlay(show) {
@@ -145,6 +151,7 @@ function openEditor(id) {
   editorContent.value = entry.content ?? "";
   editorMeta.textContent = `${formatRelativeTime(entry.createdAt)} • ${entry.tags?.length ? entry.tags.map((t) => `#${t}`).join(" ") : "no tags"}`;
   setSaveState("Saved");
+  updateSuggestionsFor(editorContent, editorSuggestions);
 
   showOverlay(true);
   editorContent.focus();
@@ -198,6 +205,213 @@ async function closeEditor() {
   openEntryId = null;
   showOverlay(false);
   dumpInput.focus();
+}
+
+function getTagCounts(list) {
+  const counts = new Map();
+  for (const entry of list) {
+    for (const tag of entry.tags ?? []) {
+      const key = String(tag).toLowerCase();
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+  }
+  return counts;
+}
+
+function getFragmentInfo(textarea) {
+  const value = textarea.value ?? "";
+  const caret = textarea.selectionStart ?? 0;
+  const upto = value.slice(0, caret);
+  const match = /(^|\s)#([a-z0-9_-]*)$/i.exec(upto);
+  if (!match) return null;
+  const hashIndex = upto.lastIndexOf("#");
+  return { hashIndex, fragment: match[2]?.toLowerCase() ?? "" };
+}
+
+function buildSuggestions(textarea, counts) {
+  const tags = Array.from(counts.keys());
+  if (!tags.length) return [];
+  const fragmentInfo = getFragmentInfo(textarea);
+  const used = new Set(extractTags(textarea.value));
+  let candidates = tags;
+  if (fragmentInfo) {
+    const fragment = fragmentInfo.fragment;
+    candidates = fragment
+      ? tags.filter((t) => t.startsWith(fragment))
+      : tags;
+  } else {
+    candidates = tags.filter((t) => !used.has(t));
+  }
+  const ranked = candidates.sort((a, b) => {
+    const diff = (counts.get(b) ?? 0) - (counts.get(a) ?? 0);
+    return diff !== 0 ? diff : a.localeCompare(b);
+  });
+  return ranked.slice(0, 8);
+}
+
+function insertTagAtCursor(textarea, tag) {
+  const value = textarea.value ?? "";
+  const start = textarea.selectionStart ?? 0;
+  const end = textarea.selectionEnd ?? start;
+  const fragmentInfo = getFragmentInfo(textarea);
+  let insert = `#${tag} `;
+  let nextValue;
+  let nextCursor;
+  if (fragmentInfo) {
+    const replaceStart = fragmentInfo.hashIndex;
+    nextValue = value.slice(0, replaceStart) + insert + value.slice(end);
+    nextCursor = replaceStart + insert.length;
+  } else {
+    const before = value.slice(0, start);
+    const after = value.slice(end);
+    if (before && !/\s$/.test(before)) {
+      insert = ` ${insert}`;
+    }
+    nextValue = before + insert + after;
+    nextCursor = before.length + insert.length;
+  }
+  textarea.value = nextValue;
+  textarea.setSelectionRange(nextCursor, nextCursor);
+  if (textarea === dumpInput) {
+    autoGrow(dumpInput);
+  }
+}
+
+function renderSuggestions(container, tags, onPick) {
+  if (!container) return;
+  container.innerHTML = "";
+  if (!tags.length) {
+    container.classList.add("hidden");
+    return;
+  }
+  for (const tag of tags) {
+    const pill = document.createElement("button");
+    pill.type = "button";
+    pill.className = "suggestion-pill";
+    pill.textContent = `#${tag}`;
+    pill.addEventListener("click", () => onPick(tag));
+    container.appendChild(pill);
+  }
+  container.classList.remove("hidden");
+}
+
+function updateSuggestionsFor(textarea, container) {
+  if (!textarea || !container) return;
+  const counts = getTagCounts(entries);
+  const suggestions = buildSuggestions(textarea, counts);
+  renderSuggestions(container, suggestions, (tag) => {
+    insertTagAtCursor(textarea, tag);
+    updateSuggestionsFor(textarea, container);
+  });
+}
+
+function updateAllSuggestions() {
+  updateSuggestionsFor(dumpInput, dumpSuggestions);
+  if (!editorOverlay.classList.contains("hidden")) {
+    updateSuggestionsFor(editorContent, editorSuggestions);
+  }
+}
+
+function buildExportPayload() {
+  return {
+    version: 1,
+    exportedAt: Date.now(),
+    entries: sortNewestFirst(entries),
+  };
+}
+
+function downloadJsonFile(data, filename) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function formatExportFilename() {
+  const date = new Date().toISOString().slice(0, 10);
+  return `kiezzdump-export-${date}.json`;
+}
+
+async function exportEntries() {
+  const payload = buildExportPayload();
+  downloadJsonFile(payload, formatExportFilename());
+  setStatus(statusEl, `Exported ${entries.length} entr${entries.length === 1 ? "y" : "ies"}`);
+}
+
+function normalizeImportedEntry(raw) {
+  const now = Date.now();
+  const content = typeof raw?.content === "string" ? raw.content : "";
+  const createdAt = typeof raw?.createdAt === "number" ? raw.createdAt : now;
+  const updatedAt = typeof raw?.updatedAt === "number" ? raw.updatedAt : createdAt;
+  const id =
+    typeof raw?.id === "string" && raw.id.trim() ? raw.id.trim() : crypto.randomUUID();
+  const tags = Array.isArray(raw?.tags)
+    ? raw.tags.filter((t) => typeof t === "string").map((t) => t.toLowerCase())
+    : extractTags(content);
+  const title = computeTitle(content);
+  return {
+    id,
+    content,
+    title,
+    tags,
+    createdAt,
+    updatedAt,
+  };
+}
+
+async function importEntriesFromFile(file) {
+  if (!file || !db) return;
+  const ok = window.confirm("Import will merge entries on this browser. Continue?");
+  if (!ok) return;
+  try {
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    const rawEntries = Array.isArray(parsed) ? parsed : parsed?.entries;
+    if (!Array.isArray(rawEntries)) {
+      setStatus(statusEl, "Import failed. File format not recognized.", "error");
+      return;
+    }
+    const byId = new Map(entries.map((e) => [e.id, e]));
+    const toSave = [];
+    let added = 0;
+    let updated = 0;
+    let skipped = 0;
+    for (const raw of rawEntries) {
+      const incoming = normalizeImportedEntry(raw);
+      const existing = byId.get(incoming.id);
+      if (!existing) {
+        byId.set(incoming.id, incoming);
+        toSave.push(incoming);
+        added += 1;
+        continue;
+      }
+      if ((incoming.updatedAt ?? 0) >= (existing.updatedAt ?? 0)) {
+        byId.set(incoming.id, incoming);
+        toSave.push(incoming);
+        updated += 1;
+      } else {
+        skipped += 1;
+      }
+    }
+    for (const entry of toSave) {
+      await saveEntry(entry);
+    }
+    entries = Array.from(byId.values());
+    refreshList();
+    setStatus(
+      statusEl,
+      `Import done. Added ${added}, updated ${updated}, skipped ${skipped}.`
+    );
+  } catch (e) {
+    setStatus(statusEl, "Import failed. Invalid JSON file.", "error");
+  } finally {
+    importFile.value = "";
+  }
 }
 
 const debouncedEditorSave = debounce(async () => {
@@ -328,7 +542,9 @@ dumpInput.addEventListener("input", () => {
   autoGrow(dumpInput);
   setDumpEnabled();
   refreshList();
+  updateSuggestionsFor(dumpInput, dumpSuggestions);
 });
+dumpInput.addEventListener("focus", () => updateSuggestionsFor(dumpInput, dumpSuggestions));
 dumpInput.addEventListener("keydown", (e) => {
   const isSubmitCombo = (e.ctrlKey || e.metaKey) && e.key === "Enter";
   if (isSubmitCombo) {
@@ -342,7 +558,11 @@ dumpBtn?.addEventListener("click", () => addEntryFromInput());
 editorContent.addEventListener("input", () => {
   setSaveState("Saving…");
   debouncedEditorSave();
+  updateSuggestionsFor(editorContent, editorSuggestions);
 });
+editorContent.addEventListener("focus", () =>
+  updateSuggestionsFor(editorContent, editorSuggestions)
+);
 editorContent.addEventListener("blur", () => persistOpenEntry());
 
 closeEditorBtn.addEventListener("click", () => closeEditor());
@@ -354,4 +574,10 @@ editorOverlay.addEventListener("click", (e) => {
 setupShortcuts();
 setupFooterEasterEgg();
 setupBrandEasterEgg();
+exportBtn?.addEventListener("click", () => exportEntries());
+importBtn?.addEventListener("click", () => importFile?.click());
+importFile?.addEventListener("change", (e) => {
+  const file = e.target?.files?.[0];
+  if (file) importEntriesFromFile(file);
+});
 boot();

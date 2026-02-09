@@ -26,6 +26,7 @@
             ></textarea>
             <button id="dumpBtn" class="btn dump-btn" type="button" disabled>Dump</button>
           </div>
+          <div id="dumpSuggestions" class="suggestions hidden" aria-live="polite"></div>
         </div>
       </header>
 
@@ -38,6 +39,11 @@
 
       <footer class="footer">
         <div class="container">
+          <div class="footer-actions">
+            <button id="exportBtn" class="btn footer-btn" type="button">Export</button>
+            <button id="importBtn" class="btn footer-btn" type="button">Import</button>
+            <input id="importFile" type="file" accept="application/json" hidden />
+          </div>
           <button id="footerEasterEgg" class="footer-line" type="button">
             Data is dumped locally in this browser.
           </button>
@@ -55,6 +61,7 @@
             <button id="closeEditorBtn" class="btn" type="button">Close</button>
           </div>
         </div>
+        <div id="editorSuggestions" class="suggestions suggestions-editor hidden" aria-live="polite"></div>
         <textarea
           id="editorContent"
           class="editor-textarea"
